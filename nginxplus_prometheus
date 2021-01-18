@@ -1,14 +1,38 @@
+load_module modules/ngx_http_js_module.so;
+
+#...
+
 http {
 
-    # the contents of the 'http' block is the same as for the $prom_keyval example
-    # except the 'location /metrics' block:
-    # ...
+    js_import /usr/share/nginx-plus-module-prometheus/prometheus.js;
+
+    subrequest_output_buffer_size 32k;
+
+    upstream backend {
+        zone   backend 64k;
+        server backend1.example.com;
+        server backend2.example.com;
+    }
+
+    server {
+        listen 80;
+
+        location / {
+            proxy_pass http://backend;
+        }
+
+        location /api {
+            api;
+        }
 
         location = /metrics {
-            set $prom_keyval        "http_upstream_keyval";
-            set $prom_keyval_stream "stream_upstream_keyval";
-            js_content              prometheus.metrics;
+            set $prom_keyval           "http_upstream_keyval";
+            set $prom_keyval_stream    "stream_upstream_keyval";
+            set $prom_metrics_disabled "stream/upstreams, resolvers";
+            js_content                 prometheus.metrics;
         }
+
+        status_zone backend_zone;
     }
 }
 
@@ -27,6 +51,4 @@ stream {
 
         proxy_pass  stream_backend;
         status_zone backend_stream_zone;
-    }
 }
-
