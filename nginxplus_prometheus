@@ -1,0 +1,32 @@
+http {
+
+    # the contents of the 'http' block is the same as for the $prom_keyval example
+    # except the 'location /metrics' block:
+    # ...
+
+        location = /metrics {
+            set $prom_keyval        "http_upstream_keyval";
+            set $prom_keyval_stream "stream_upstream_keyval";
+            js_content              prometheus.metrics;
+        }
+    }
+}
+
+stream {
+
+    keyval_zone zone=stream_keyval:32k;
+
+    upstream stream_backend {
+        zone   stream_backend 64k;
+        server backend1.example.com:12345;
+        server backend2.example.com:12345;
+    }
+
+    server {
+        listen 12345;
+
+        proxy_pass  stream_backend;
+        status_zone backend_stream_zone;
+    }
+}
+
